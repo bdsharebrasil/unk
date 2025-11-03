@@ -959,23 +959,61 @@ export const eventService = {
         return { error: 'event_id_required' };
       }
 
-      // Fetch event to provide better error messages and potential authorization checks
-      const { data: event, error: fetchError } = await supabase.from('events').select('created_by').eq('id', id).maybeSingle();
-      if (fetchError) {
-        console.warn('Error fetching event before delete:', fetchError);
-        // continue - we'll still attempt deletion below, letting RLS or DB return appropriate errors
+      // Get current user id (may be undefined in server contexts)
+      let userId: string | null = null;
+      try {
+        // prefer getUser which is safe in browser and edge
+        const userRes = await supabase.auth.getUser();
+        userId = userRes?.data?.user?.id ?? null;
+      } catch (err) {
+        // ignore - we may be running in a context without an active session
+        userId = null;
       }
 
-      // Attempt to delete event_djs relations first. If RLS prevents it, log and continue to try deleting the event itself
+      // Fetch event to check created_by (may fail under RLS)
+      const { data: event, error: fetchError } = await supabase.from('events').select('created_by').eq('id', id).maybeSingle();
+      if (fetchError) {
+        const msg = String(fetchError?.message || fetchError);
+        if (/permission|row-level security|unauthorized/i.test(msg)) {
+          // cannot read event due to RLS — deny by default
+          return { error: 'unauthorized' };
+        }
+        console.warn('Error fetching event before delete:', fetchError);
+      }
+
+      // If we have a userId, fetch profile role to allow admins
+      let profileRole: string | null = null;
+      if (userId) {
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle();
+          if (!profileError && profileData) profileRole = (profileData as any).role ?? null;
+        } catch (err) {
+          // ignore - treat as non-admin if we cannot fetch profile
+        }
+      }
+
+      const canDelete = Boolean(
+        (event && (event as any).created_by && userId && String((event as any).created_by) === String(userId)) || profileRole === 'admin'
+      );
+
+      if (!canDelete) {
+        return { error: 'unauthorized' };
+      }
+
+      // Try to delete event_djs relations first. If RLS prevents it, log and proceed to attempt deleting the event itself
       try {
         const { error: deleteRelationsError } = await supabase.from('event_djs').delete().eq('event_id', id);
         if (deleteRelationsError) {
           const msg = String(deleteRelationsError?.message || deleteRelationsError);
           if (/permission|row-level security|unauthorized/i.test(msg)) {
             console.warn('RLS/permission prevented deleting event_djs relations:', deleteRelationsError);
-            return { error: 'unauthorized' };
+          } else {
+            console.warn('Error deleting event_djs relations:', deleteRelationsError);
           }
-          console.warn('Error deleting event_djs relations:', deleteRelationsError);
         }
       } catch (err) {
         console.warn('Caught error deleting event_djs relations:', formatError(err));

@@ -64,6 +64,7 @@ interface EventCreationModalProps {
   onClose: () => void;
   preselectedDJ?: DJ;
   preselectedProducer?: Producer;
+  preselectedDate?: Date | null;
 }
 
 export const EventCreationModal: React.FC<EventCreationModalProps> = ({
@@ -71,6 +72,7 @@ export const EventCreationModal: React.FC<EventCreationModalProps> = ({
   onClose,
   preselectedDJ,
   preselectedProducer
+  , preselectedDate = null
 }) => {
   const { userProfile } = useAuth();
   const queryClient = useQueryClient();
@@ -93,6 +95,7 @@ export const EventCreationModal: React.FC<EventCreationModalProps> = ({
     selectedDJs: preselectedDJ ? [preselectedDJ] : [],
     selectedProducer: preselectedProducer || null,
     djCacheValues: preselectedDJ ? { [preselectedDJ.id]: preselectedDJ.base_price || 0 } : {},
+    event_date: preselectedDate || null,
     visible_to_dj: true,
     shared_with_admin: userProfile?.role === 'dj' ? false : true,
   });
@@ -313,7 +316,7 @@ export const EventCreationModal: React.FC<EventCreationModalProps> = ({
   const resetForm = () => {
     setFormData({
       event_name: '',
-      event_date: null,
+      event_date: preselectedDate || null,
       event_time: '',
       location: '',
       city: '',

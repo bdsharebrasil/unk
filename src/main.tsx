@@ -2,6 +2,16 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+// Ensure theme is applied as early as possible to avoid flash-of-unstyled-theme (FOUT)
+try {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+  const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = stored || (prefersDark ? 'dark' : 'light');
+  if (typeof document !== 'undefined' && theme) document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+} catch (e) {
+  // ignore storage errors
+}
+
 const suppressedErrorMessages = [
   "ResizeObserver loop limit exceeded",
   "ResizeObserver loop completed with undelivered notifications.",

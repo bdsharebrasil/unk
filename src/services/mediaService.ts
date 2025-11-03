@@ -69,6 +69,10 @@ const CATEGORY_BUCKET_MAP: Record<string, string> = {
 const SUPABASE_BASE_URL = ((import.meta.env?.VITE_SUPABASE_URL ?? SUPABASE_URL) || '').replace(/\/$/, '');
 const SUPABASE_ANON_KEY = ((import.meta.env?.VITE_SUPABASE_ANON_KEY ?? SUPABASE_PUBLISHABLE_KEY) || '').trim();
 
+// Bucket and file limits
+const DJ_PROFILE_BUCKET = 'dj-media';
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
 function randomId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
@@ -310,18 +314,40 @@ async function insertMediaRecord(meta: InsertMeta): Promise<MediaItem | null> {
 
 async function uploadViaStorage(params: UploadFileParams): Promise<MediaItem> {
   const { djId, file, category, title, description } = params;
+  // Enforce file size limits early
+  try {
+    if (file && typeof file.size === 'number' && file.size > MAX_IMAGE_SIZE) {
+      throw new Error('file_too_large');
+    }
+  } catch (err) {
+    throw err;
+  }
   const bucket = CATEGORY_BUCKET_MAP[category] ?? CATEGORY_BUCKET_MAP.other;
   const ext = extensionFromFile(file);
   const baseName = sanitizeFileName((title || file.name).replace(/\.[^/.]+$/, ''));
   const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '');
   const relativePath = `${djId}/${category}/${timestamp}-${baseName}${ext ? `.${ext}` : ''}`;
 
-  const { error: uploadError } = await supabase.storage.from(bucket).upload(relativePath, file, {
+  let uploadError: any = null;
+  try {
+    const { error } = await supabase.storage.from(bucket).upload(relativePath, file, {
     cacheControl: '3600',
     upsert: false
-  });
+    });
+    uploadError = error;
+  } catch (err) {
+    // Some SDKs throw for bucket missing — normalize into uploadError
+    uploadError = err;
+  }
 
   if (uploadError) {
+    const msg = String(uploadError?.message || uploadError);
+    // If bucket is missing, provide a clearer error so caller can surface actionable message
+    if (/bucket|does not exist|undefined bucket|no such bucket/i.test(msg)) {
+      const e = new Error(`bucket_missing: ${msg}`);
+      (e as any).code = 'BUCKET_MISSING';
+      throw e;
+    }
     throw uploadError;
   }
 

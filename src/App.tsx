@@ -13,6 +13,7 @@ import { PWAInstallPrompt } from "@/components/ui/PWAInstallPrompt";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin-dashboard";
@@ -55,7 +56,7 @@ const LoginRoute = () => {
 };
 
 function AppRoutes() {
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, role, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
   const isShareRoute = location?.startsWith("/share/") ?? false;
 
@@ -74,6 +75,10 @@ function AppRoutes() {
       }
     }
   }, [isAuthenticated, role, location, setLocation, isShareRoute]);
+
+  if (isLoading) {
+    return <LoadingScreen message="Carregando sessão..." />;
+  }
 
   if (isShareRoute) {
     return <SharedMedia />;

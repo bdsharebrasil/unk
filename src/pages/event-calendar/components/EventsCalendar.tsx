@@ -73,7 +73,7 @@ interface EventsCalendarProps {
   events?: CalendarEvent[];
   djs?: CalendarDJ[];
   producers?: CalendarProducer[];
-  onCreateEvent?: () => void;
+  onCreateEvent?: (date?: Date) => void;
   onViewEvent?: (event: CalendarEvent) => void;
   onEditEvent?: (event: CalendarEvent) => void;
   onDeleteEvent?: (eventId: string) => void;
@@ -240,6 +240,29 @@ const EventsCalendar = ({
     });
   };
 
+  // build month grid helper
+  const buildMonthMatrix = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDay = firstDay.getDay(); // 0..6 (Sun..Sat)
+    // We'll render weeks starting Monday; convert
+    const startOffset = (startDay + 6) % 7; // Monday=0
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const matrix: Array<Array<{ date: Date; inMonth: boolean }>> = [];
+    let current = new Date(year, month, 1 - startOffset);
+    for (let week = 0; week < 6; week++) {
+      const weekRow: Array<{ date: Date; inMonth: boolean }> = [];
+      for (let day = 0; day < 7; day++) {
+        weekRow.push({ date: new Date(current), inMonth: current.getMonth() === month });
+        current.setDate(current.getDate() + 1);
+      }
+      matrix.push(weekRow);
+    }
+    return matrix;
+  };
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -382,6 +405,48 @@ const EventsCalendar = ({
           </Button>
         </div>
       </motion.div>
+
+      {viewMode === 'month' && (
+        <div className="mt-6">
+          <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-2">
+            {['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((d) => (
+              <div key={d} className="text-center font-medium">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {buildMonthMatrix(currentDate).map((week, wi) => (
+              <div key={wi} className="space-y-2">
+                {week.map((cell) => {
+                  const cellDate = cell.date;
+                  const iso = cellDate.toISOString().slice(0,10);
+                  const cellEvents = events.filter(e => e.event_date && (e.event_date.slice(0,10) === iso));
+                  const isToday = (() => { const t = new Date(); t.setHours(0,0,0,0); return cellDate.getTime() === t.getTime(); })();
+                  return (
+                    <button
+                      key={iso}
+                      onClick={() => onCreateEvent?.(cellDate)}
+                      className={"w-full p-3 h-20 text-left rounded-lg border " + (cell.inMonth ? 'bg-card text-card-foreground border-border' : 'bg-muted/30 text-muted-foreground') + (isToday ? ' ring-2 ring-primary' : '')}
+                      title={cellDate.toDateString()}
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-medium">{cellDate.getDate()}</span>
+                        {cellEvents.length > 0 && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-accent/20 text-accent">{cellEvents.length} evento{cellEvents.length>1?'s':''}</span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground overflow-hidden" style={{maxHeight: 40}}>
+                        {cellEvents.slice(0,2).map(ev => (
+                          <div key={ev.id} className="truncate">• {ev.title}</div>
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {todayEvents.length > 0 && (
         <motion.div

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { storageService } from '@/services/supabaseService';
 import { toast } from 'sonner';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface NavItem {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -199,7 +200,10 @@ export function TopBar() {
             })}
           </nav>
 
-          {/* Avatar / user menu */}
+          {/* Theme toggle and Avatar / user menu */}
+          <div className="mr-3 flex items-center">
+            <ThemeToggle />
+          </div>
           <div className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}

@@ -858,10 +858,9 @@ const DJsProfile = () => {
             <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background" />
 
             <div className="relative flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:p-12">
-              {/* Avatar with Glow Effect */}
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500 rounded-full opacity-75 blur-xl group-hover:opacity-100 transition duration-1000 animate-pulse-glow" />
-                <Avatar className="relative h-36 w-36 lg:h-44 lg:w-44 border-4 border-white/20 shadow-2xl ring-4 ring-primary/20">
+              {/* Avatar */}
+              <div className="relative">
+                <Avatar className="relative h-36 w-36 lg:h-44 lg:w-44 border-4 border-white/20 shadow-2xl">
                   <AvatarImage
                     className="object-cover object-center"
                     src={dj.avatar_url ?? undefined}
@@ -998,8 +997,8 @@ const DJsProfile = () => {
           </LiquidCard>
         </div>
 
-        {/* Metrics Section with Bent Grid */}
-        <LiquidGrid cols={4} className="gap-4 [&>*:nth-child(1)]:rotate-[-1deg] [&>*:nth-child(2)]:rotate-[0.5deg] [&>*:nth-child(3)]:rotate-[-0.5deg] [&>*:nth-child(4)]:rotate-[1deg]">
+  {/* Metrics Section */}
+  <LiquidGrid cols={4} className="gap-4">
           <LiquidCard hover className="transition-all hover:rotate-0 hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total de Eventos</CardTitle>

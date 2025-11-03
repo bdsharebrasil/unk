@@ -141,6 +141,8 @@ const EventCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState<ExtendedCalendarEvent | null>(null);
   const [eventModalMode, setEventModalMode] = useState<"create" | "view" | "edit">("create");
   const [eventFormSubmitting, setEventFormSubmitting] = useState(false);
+  const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
+  const [creationPreselectedDate, setCreationPreselectedDate] = useState<Date | null>(null);
 
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [contractEvent, setContractEvent] = useState<ExtendedCalendarEvent | null>(null);
@@ -443,6 +445,15 @@ const EventCalendar = () => {
     setIsEventModalOpen(true);
   }, []);
 
+  // New handler to open creation modal with an optional date
+  const handleCreateEventWithDate = useCallback((date?: Date) => {
+    setSelectedEvent(null);
+    setEventModalMode("create");
+    // open a dedicated creation modal (EventCreationModal) if available
+    setCreationPreselectedDate(date ?? null);
+    setIsCreationModalOpen(true);
+  }, []);
+
   const handleViewEvent = useCallback((event: CalendarEvent) => {
     setSelectedEvent(event as ExtendedCalendarEvent);
     setEventModalMode("view");
@@ -696,7 +707,7 @@ const EventCalendar = () => {
           events={calendarEvents}
           djs={calendarDjs}
           producers={calendarProducers}
-          onCreateEvent={handleCreateEvent}
+          onCreateEvent={handleCreateEventWithDate}
           onViewEvent={handleViewEvent}
           onEditEvent={handleEditEvent}
           onDeleteEvent={handleDeleteEvent}
@@ -718,6 +729,13 @@ const EventCalendar = () => {
           djs={calendarDjs}
           producers={calendarProducers}
           isSubmitting={eventFormSubmitting}
+        />
+
+        {/* Rich creation modal with DJ autocomplete and per-DJ cache fields */}
+        <EventCreationModal
+          isOpen={isCreationModalOpen}
+          onClose={() => { setIsCreationModalOpen(false); setCreationPreselectedDate(null); }}
+          preselectedDate={creationPreselectedDate}
         />
 
         <EventContractModal

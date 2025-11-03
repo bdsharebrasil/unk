@@ -15,7 +15,7 @@ WITH CHECK (id = auth.uid());
 CREATE POLICY "DJs can create events" ON public.events
 FOR INSERT TO authenticated
 WITH CHECK (
-  created_by = auth.uid() OR 
+  -- permitir criação se o usuário autenticado tiver role 'dj'
   EXISTS (
     SELECT 1 FROM public.profiles 
     WHERE profiles.id = auth.uid() AND profiles.role = 'dj'
@@ -26,7 +26,7 @@ WITH CHECK (
 CREATE POLICY "DJs can view own events" ON public.events
 FOR SELECT TO authenticated
 USING (
-  created_by = auth.uid() OR
+  -- visualizar se for DJ vinculado ao evento via event_djs ou for admin
   EXISTS (
     SELECT 1 FROM public.event_djs 
     WHERE event_djs.event_id = events.id 
@@ -42,7 +42,12 @@ USING (
 CREATE POLICY "DJs can update own events" ON public.events
 FOR UPDATE TO authenticated
 USING (
-  created_by = auth.uid() OR
+  -- permitir update se for admin ou se for DJ vinculado via event_djs
+  EXISTS (
+    SELECT 1 FROM public.event_djs 
+    WHERE event_djs.event_id = events.id 
+    AND event_djs.dj_id = auth.uid()
+  ) OR
   EXISTS (
     SELECT 1 FROM public.profiles 
     WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
@@ -53,7 +58,12 @@ USING (
 CREATE POLICY "DJs can delete own events" ON public.events
 FOR DELETE TO authenticated
 USING (
-  created_by = auth.uid() OR
+  -- permitir delete se for admin ou se for DJ vinculado via event_djs
+  EXISTS (
+    SELECT 1 FROM public.event_djs 
+    WHERE event_djs.event_id = events.id 
+    AND event_djs.dj_id = auth.uid()
+  ) OR
   EXISTS (
     SELECT 1 FROM public.profiles 
     WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
